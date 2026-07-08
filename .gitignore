@@ -1,0 +1,31 @@
+# Environment Secrets (Crucial)
+.env
+.env.local
+.env.*
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Project Logs
+*.log
+pipeline.log
+
+# Database Dumps (Avoid committing massive data, keep schema.sql)
+database_dump.sql
+
+# Local Data Directories (Keep config and inputs but ignore raw scraper caches/large files)
+.web_cache/
+.playwright/
+node_modules/
+.DS_Store
+Thumbs.db
