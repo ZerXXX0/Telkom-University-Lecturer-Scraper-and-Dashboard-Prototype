@@ -80,7 +80,7 @@ erDiagram
 
     EMBEDDINGS {
         int id PK
-        int lecturer_id FK UK
+        int lecturer_id FK "Unique"
         vector keyword_embedding "384-dim pgvector"
         vector publication_embedding "384-dim pgvector"
     }
