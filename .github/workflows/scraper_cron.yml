@@ -1,0 +1,85 @@
+name: Scraper Cron Pipeline
+
+on:
+  schedule:
+    # Run at 00:00 UTC every Sunday (Weekly)
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    # Allows manual triggering of the workflow from the GitHub Actions tab
+
+jobs:
+  run-pipeline:
+    name: Run Scraper and Update Database
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # Automatically caches pip dependencies
+
+      - name: Cache Hugging Face & Torch Models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/torch
+          key: ${{ runner.os }}-hf-models-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-hf-models-
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('requirements.txt') }}
+
+      - name: Install Playwright Browsers and System Dependencies
+        run: |
+          python -m playwright install chromium --with-deps
+
+      - name: Install and Start Tor Proxy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tor
+          sudo service tor start
+          # Wait for Tor connection to bootstrap
+          for i in {1..15}; do
+            if curl --socks5-hostname 127.0.0.1:9050 -s https://api.ipify.org > /dev/null; then
+              echo "Tor is connected and working! Current Tor IP:"
+              curl --socks5-hostname 127.0.0.1:9050 -s https://api.ipify.org
+              echo ""
+              exit 0
+            fi
+            echo "Waiting for Tor..."
+            sleep 2
+          done
+          echo "Failed to start Tor proxy"
+          exit 1
+
+      - name: Initialize Database (if needed)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -c "from database.postgres import init_db; init_db()"
+
+      - name: Run Incremental Scraper & Database Sync
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENALEX_EMAIL: ${{ secrets.OPENALEX_EMAIL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          HTTP_PROXY: socks5://127.0.0.1:9050
+          HTTPS_PROXY: socks5://127.0.0.1:9050
+          ALL_PROXY: socks5://127.0.0.1:9050
+        run: |
+          python incremental_update.py

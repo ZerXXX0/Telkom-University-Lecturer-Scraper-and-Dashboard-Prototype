@@ -19,8 +19,14 @@ def get_base_name(name):
 
 async def scrape_soc_lecturers():
     print("Launching playwright to scrape SOC lecturer page...")
+    proxy_env = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("ALL_PROXY")
+    launch_kwargs = {"headless": True}
+    if proxy_env:
+        launch_kwargs["proxy"] = {"server": proxy_env}
+        print(f"Using Playwright proxy: {proxy_env}")
+
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(**launch_kwargs)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )

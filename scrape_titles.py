@@ -58,8 +58,14 @@ def get_base_name(name):
 
 async def scrape_and_update():
     print("Launching playwright to scrape SOC lecturer page for titles...")
+    proxy_env = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("ALL_PROXY")
+    launch_kwargs = {"headless": True}
+    if proxy_env:
+        launch_kwargs["proxy"] = {"server": proxy_env}
+        print(f"Using Playwright proxy: {proxy_env}")
+
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(**launch_kwargs)
         page = await browser.new_page()
         url = "https://soc.telkomuniversity.ac.id/dosen-fakultas-informatika/"
         print(f"Navigating to {url}...")
