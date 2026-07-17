@@ -4,6 +4,7 @@ from config import settings
 from database.postgres import SessionLocal
 from database.models import Lecturer, Profile, Publication, Keyword, ResearchInterest, Coauthor, Embedding, Recommendation, Collaboration
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from utils.logger import get_logger
 
 logger = get_logger("save_to_db")
@@ -27,17 +28,9 @@ def populate_db():
     # Pass 1: Clear existing and create base Lecturer records to get their database IDs
     code_to_id = {}
     
-    logger.info("Cleaning up existing database records in relational order...")
+    logger.info("Cleaning up existing database records using TRUNCATE CASCADE...")
     try:
-        db.query(Collaboration).delete()
-        db.query(Recommendation).delete()
-        db.query(Embedding).delete()
-        db.query(Profile).delete()
-        db.query(Publication).delete()
-        db.query(Keyword).delete()
-        db.query(ResearchInterest).delete()
-        db.query(Coauthor).delete()
-        db.query(Lecturer).delete()
+        db.execute(text("TRUNCATE TABLE collaborations, recommendations, embeddings, profiles, publications, keywords, research_interests, coauthors, lecturers RESTART IDENTITY CASCADE;"))
         db.commit()
     except Exception as e:
         db.rollback()
@@ -53,7 +46,6 @@ def populate_db():
         code = basic.get("code") or data.get("id")
         
         lecturer = Lecturer(
-            name=basic.get("name"),
             code=code,
             lecturer_code=basic.get("lecturer_code"),
             study_program=basic.get("study_program"),
@@ -89,6 +81,7 @@ def populate_db():
     logger.info("Populating relational tables and recommendations...")
     for data in lecturer_data:
         basic = data.get("basic_info", {})
+        identity = data.get("identity", {})
         research = data.get("research", {})
         profiles = data.get("profiles", {})
         emb = data.get("embeddings")
@@ -144,7 +137,7 @@ def populate_db():
                 ))
                 
         db.commit()
-        logger.info(f"Populated details for {basic.get('name')} ({code}).")
+        logger.info(f"Populated details for {identity.get('full_name')} ({code}).")
 
     # Pass 3: Compute and populate collaborations
     logger.info("Computing and populating collaboration network table...")

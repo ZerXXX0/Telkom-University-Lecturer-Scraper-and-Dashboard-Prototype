@@ -12,11 +12,11 @@ st.set_page_config(page_title="Lecturer Profiling Dashboard", page_icon="🎓", 
 def load_all_lecturers():
     db = SessionLocal()
     try:
-        lecturers = db.query(Lecturer).order_by(Lecturer.name).all()
+        lecturers = db.query(Lecturer).order_by(Lecturer.full_name).all()
         return [{
             "code": l.code,
-            "name": l.name,
-            "name_with_title": l.name_with_title or l.name,
+            "name": l.full_name,
+            "name_with_title": l.full_name,
             "lecturer_code": l.lecturer_code,
             "research_group": l.research_group,
             "study_program": l.study_program,
@@ -55,14 +55,14 @@ def load_lecturer_detail(code):
                     "recommended_lecturer_id": rec_lect.code,
                     "score": r.score,
                     "reasons": r.reasons,
-                    "name": rec_lect.name,
+                    "name": rec_lect.full_name,
                     "research_group": rec_lect.research_group,
                     "lecturer_code": rec_lect.lecturer_code
                 })
                 
         return {
             "basic_info": {
-                "name": lect.name,
+                "name": lect.full_name,
                 "code": lect.code,
                 "lecturer_code": lect.lecturer_code,
                 "study_program": lect.study_program,
@@ -71,7 +71,7 @@ def load_lecturer_detail(code):
                 "field": lect.field
             },
             "identity": {
-                "name_with_title": lect.name_with_title,
+                "name_with_title": lect.full_name,
                 "full_name": lect.full_name,
                 "email": lect.email,
                 "photo": lect.photo
@@ -136,8 +136,8 @@ def load_db_collaborations():
             l2 = db.query(Lecturer).filter(Lecturer.id == c.lecturer_id_2).first()
             if l1 and l2:
                 result.append({
-                    "Lecturer 1": l1.name_with_title or l1.name,
-                    "Lecturer 2": l2.name_with_title or l2.name,
+                    "Lecturer 1": l1.full_name,
+                    "Lecturer 2": l2.full_name,
                     "L1_Group": l1.research_group,
                     "L2_Group": l2.research_group,
                     "L1_Prodi": l1.study_program,
@@ -196,8 +196,8 @@ else:
         format_func=lambda x: options_map[x]
     )
 
-# 3-Tab Main Layout
-tab1, tab2, tab3 = st.tabs(["👤 Lecturer Profiles", "📊 FIF Research Statistics", "🤝 Collaboration Network"])
+# 4-Tab Main Layout
+tab1, tab2, tab3, tab4 = st.tabs(["👤 Lecturer Profiles", "📊 FIF Research Statistics", "🤝 Collaboration Network", "🔍 Database Inspector"])
 
 # ================= TAB 1: LECTURER PROFILES =================
 with tab1:
@@ -700,3 +700,39 @@ with tab3:
                         
             if len(filtered_collabs) > 50:
                 st.write(f"*...and {len(filtered_collabs) - 50} more connections.*")
+
+# ================= TAB 4: DATABASE INSPECTOR =================
+with tab4:
+    st.header("🔍 Database Column & Value Inspector")
+    st.write("Inspect the raw database column values for the selected lecturer.")
+    
+    if selected_code:
+        db = SessionLocal()
+        try:
+            lect = db.query(Lecturer).filter(Lecturer.code == selected_code).first()
+            if lect:
+                columns_data = []
+                for column in Lecturer.__table__.columns:
+                    val = getattr(lect, column.name)
+                    # format json/list/vector values nicely
+                    if isinstance(val, (list, dict)):
+                        import json
+                        val_str = json.dumps(val, indent=2)
+                    else:
+                        val_str = str(val)
+                    columns_data.append({
+                        "Column Name": column.name,
+                        "Type": str(column.type),
+                        "Value": val_str
+                    })
+                
+                df_cols = pd.DataFrame(columns_data)
+                st.dataframe(df_cols, use_container_width=True, hide_index=True, height=600)
+            else:
+                st.error("Lecturer not found in database.")
+        except Exception as e:
+            st.error(f"Error loading columns: {e}")
+        finally:
+            db.close()
+    else:
+        st.info("Select a lecturer from the sidebar to inspect their columns.")

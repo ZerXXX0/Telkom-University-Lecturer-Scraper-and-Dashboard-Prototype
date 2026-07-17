@@ -2,7 +2,7 @@ import asyncio
 import httpx
 from utils.logger import get_logger
 from utils.retry import with_retry
-from parser.normalize import normalize_name, normalize_keyword
+from parser.normalize import normalize_name, normalize_keyword, clean_name_for_search
 from config import settings
 
 logger = get_logger("scraper.openalex")
@@ -35,13 +35,16 @@ async def search_author_on_openalex(client: httpx.AsyncClient, name: str, instit
     First tries with an institution filter (Telkom University).
     If no match, falls back to a wider search and manually checks affiliations.
     """
-    logger.info(f"Searching author '{name}' on OpenAlex...")
+    # Clean name by removing titles and degrees
+    search_name = clean_name_for_search(name)
+
+    logger.info(f"Searching author '{name}' (cleaned: '{search_name}') on OpenAlex...")
     
     # 1. Search with institution filter
     # filter format: last_known_institutions.id:<id>
     url = "https://api.openalex.org/authors"
     params = {
-        "search": name,
+        "search": search_name,
         "filter": f"last_known_institutions.id:{institution_id}"
     }
     
@@ -55,8 +58,8 @@ async def search_author_on_openalex(client: httpx.AsyncClient, name: str, instit
         logger.warning(f"Error during filtered author search for '{name}': {e}")
 
     # 2. Fallback search: search without filter and scan affiliations
-    logger.info(f"Running fallback search for '{name}' without institution filter...")
-    params = {"search": name}
+    logger.info(f"Running fallback search for '{name}' (cleaned: '{search_name}') without institution filter...")
+    params = {"search": search_name}
     try:
         data = await fetch_url(client, url, params=params)
         results = data.get("results", [])

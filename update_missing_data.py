@@ -152,8 +152,24 @@ def verify_scholar_profile(soup, lecturer_name: str) -> bool:
     if not name_div:
         return False
     profile_name = name_div.get_text(strip=True).lower()
-    lecturer_name_clean = lecturer_name.lower().replace(",", "").replace(".", "")
     
+    # 1. Clean and tokenize lecturer name
+    lec_clean = lecturer_name.lower().replace(",", "").replace(".", "")
+    lec_words = [w for w in lec_clean.split() if len(w) > 2 and w not in [
+        'kom', 'mkom', 'si', 'msi', 'spd', 'dr', 'prof', 'dra', 'drs', 'ir', 'eng', 'mt', 'smt', 'smat', 'mmat', 'meng'
+    ]]
+    
+    # 2. Tokenize profile name
+    prof_words = [w for w in profile_name.split() if len(w) > 1]
+    
+    # 3. Check for significant word overlap or direct substring match
+    matching_words = [w for w in lec_words if w in prof_words]
+    overlap_count = len(matching_words)
+    has_name_overlap = (overlap_count >= 2) or (overlap_count == 1 and lec_words and matching_words[0] == lec_words[0]) or (lec_clean in profile_name) or (profile_name in lec_clean)
+    if not has_name_overlap:
+        return False
+        
+    # 4. Check affiliation
     aff_div = soup.select_one('#gsc_prf_i') or soup.select_one('.gsc_prf_il')
     if aff_div:
         aff_text = aff_div.get_text(strip=True).lower()
@@ -163,7 +179,7 @@ def verify_scholar_profile(soup, lecturer_name: str) -> bool:
         if any(org in aff_text for org in other_orgs):
             return False
             
-    if profile_name == lecturer_name_clean:
+    if profile_name == lec_clean:
         return True
     return False
 

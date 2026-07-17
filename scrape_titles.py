@@ -91,6 +91,8 @@ async def scrape_and_update():
                 continue
             full_name_web = cols[2].get_text(strip=True)
             nip = cols[4].get_text(strip=True)
+            if nip and '-' in nip:
+                nip = nip.split('-')[0].strip()
             
             titles = extract_titles(full_name_web)
             

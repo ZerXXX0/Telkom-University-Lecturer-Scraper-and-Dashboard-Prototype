@@ -4,7 +4,6 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Create tables
 CREATE TABLE IF NOT EXISTS lecturers (
     id SERIAL PRIMARY KEY,
-    name VARCHAR,
     code VARCHAR UNIQUE,
     lecturer_code VARCHAR,
     study_program VARCHAR,

@@ -7,7 +7,6 @@ Base = declarative_base()
 class Lecturer(Base):
     __tablename__ = 'lecturers'
     id = Column(Integer, primary_key=True)
-    name = Column(String)
     code = Column(String, unique=True)
     lecturer_code = Column(String)
     study_program = Column(String)

@@ -224,6 +224,11 @@ async def process_lecturer(lecturer_info):
         logger.info(f"OpenAlex profile not found or failed for '{name}'. Using web scraped data.")
         merged = web_merged
     
+    if lecturer_info.get("photo_url") and not merged.get("identity", {}).get("photo"):
+        if "identity" not in merged:
+            merged["identity"] = {}
+        merged["identity"]["photo"] = lecturer_info["photo_url"]
+        
     merged["research"]["ai_categories"] = categorize_ai(merged["research"])
     
     kw_text = " ".join(merged["research"]["keywords"])
