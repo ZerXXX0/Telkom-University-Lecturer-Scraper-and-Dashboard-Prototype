@@ -7,7 +7,9 @@ class Settings(BaseSettings):
     OPENALEX_EMAIL: str = "dev@telkomuniversity.ac.id"
     
     DATA_DIR: str = "data"
-    BASE_OUTPUT_DIR: str = os.path.expanduser("~/lecturer_pipeline_data")
+    # Use a directory inside the repository for CI stability.
+    # Allows overriding via env var BASE_OUTPUT_DIR if needed.
+    BASE_OUTPUT_DIR: str = os.path.abspath(os.getenv("BASE_OUTPUT_DIR", os.path.join(os.path.dirname(__file__), "..", "output")))
     INPUT_DIR: str = os.path.join(DATA_DIR, "input")
     RAW_DIR: str = os.path.join(BASE_OUTPUT_DIR, "raw")
     CLEANED_DIR: str = os.path.join(BASE_OUTPUT_DIR, "cleaned")
